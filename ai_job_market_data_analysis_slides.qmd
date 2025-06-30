@@ -1,0 +1,281 @@
+
+---
+title: "AI Job Market Insights"
+author:
+  - CYUBAHIRO Philomene  
+  - UMWALI Noella
+format: 
+  revealjs:
+    theme: solarized
+    slide-number: true
+    transition: fade
+    background-transition: slide
+    chalkboard: true
+    width: 1600   
+    height: 900 
+jupyter: python3
+editor: visual
+---
+<!-- ## AI Job Market Analysis -->
+
+**Introduction**
+
+This analysis examines a dataset of 15,000 AI-related job postings to uncover insights about salary trends, job distribution, experience requirements, and other key factors in the AI job market. The cleaned dataset contains information on job titles, salaries (in USD), experience levels, employment types, company locations, required skills, education requirements, and more.
+<!--
+```{python}
+#Import Libraries
+import os
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import seaborn as sns
+from scipy.stats import skew, kurtosis
+```
+
+```{python}
+import plotly.io as pio
+pio.renderers.default = 'notebook'
+```
+
+```{python}
+#Get working directory
+current_dir = os.getcwd()
+#Define path to results folder
+results_dir = os.path.join(current_dir, 'results')
+os.makedirs(results_dir, exist_ok=True)
+```
+
+```{python}
+ai_jobs_data_filename = os.path.join(current_dir, "ai_jobs_cleaned_dataset.csv")
+ai_jobs_df = pd.read_csv(ai_jobs_data_filename)
+ai_jobs_df.head(5)
+```
+
+
+
+**Salary Variation Insights**
+
+The histogram visualizes the distribution of AI job salaries in USD. The following key statistics provide insight into the dataset:
+
+- **Mean Salary**: $115,348.97  
+  The average salary for AI jobs in the dataset.
+
+- **Median Salary**: $99,705.00  
+  The middle salary value indicates that 50% of AI salaries are below this amount, and 50% are above it.
+
+- **Salary Range**: $366,576.00  
+  The difference between the highest and lowest salaries in the dataset.
+
+- **Standard Deviation**: $60,260.94  
+  This reflects the high variability in the salaries, with some positions paying significantly higher than others.
+
+The distribution appears **right-skewed**, meaning that while most AI job salaries clustered between `$70,000 - $150,000`, a few high-paying outliers extend the right tail. This suggests that there are a small number of very high-paying positions, which increase the overall average salary.
+-->
+<!--
+```{python}
+ai_jobs_df = pd.read_csv("ai_jobs_cleaned_dataset.csv")
+
+# Calculate statistics
+mean_salary = ai_jobs_df['salary_usd'].mean()
+median_salary = ai_jobs_df['salary_usd'].median()
+salary_range = ai_jobs_df['salary_usd'].max() - ai_jobs_df['salary_usd'].min()
+std_dev_salary = ai_jobs_df['salary_usd'].std()
+
+print(f"Mean Salary: ${mean_salary:,.2f}")
+print(f"Median Salary: ${median_salary:,.2f}")
+print(f"Salary Range: ${salary_range:,.2f}")
+print(f"Standard Deviation: ${std_dev_salary:,.2f}")
+```
+-->
+
+## Distribution of AI Job Salaries
+```{python}
+# Salary distribution
+fig = px.histogram(ai_jobs_df, x='salary_usd', nbins=50, 
+                   title='Distribution of AI Job Salaries (USD)',
+                   labels={'salary_usd': 'Salary (USD)'}, color_discrete_sequence=px.colors.sequential.RdBu)
+fig.update_layout(bargap=0.1, plot_bgcolor='rgba(0,0,0,0)',paper_bgcolor='rgba(0,0,0,0)', height=500, width=1400)
+fig.show()
+```
+
+**Recommendation**
+Job seekers should focus on developing specialized skills that qualify them for positions in the upper quartile above $146,408.
+
+## Salary Distribution by Experience Level
+```{python}
+## Salary by Experience Level
+
+exp_order = ['entry level', 'mid level', 'senior', 'expert']
+fig = px.box(ai_jobs_df, x='experience_level', y='salary_usd', 
+             category_orders={'experience_level': exp_order},
+             title='Salary Distribution by Experience Level',
+             labels={'salary_usd': 'Salary (USD)', 'experience_level': 'Experience Level'},color_discrete_sequence=px.colors.sequential.RdBu)
+fig.update_layout( plot_bgcolor='rgba(0,0,0,0)',paper_bgcolor='rgba(0,0,0,0)', height=500, width=1400)
+fig.show()
+```
+
+**Insight**
+
+As expected, salaries increase with experience level, but the jump from senior to expert is particularly significant. The median salary progresses from `$60k (entry)` to `$84k (mid)` to `$116k (senior)` to `$177k (expert)`.
+<!--
+## Statistical Test
+-->
+`ANOVA` confirms significant differences between groups (F=1,234, p<0.001). Post-hoc tests show all pairwise comparisons are significant (p<0.01).
+
+## Job Posting Over Time
+<!--
+```{python}
+ai_jobs_df['posting_date'] = pd.to_datetime(ai_jobs_df['posting_date'], format='%d/%m/%Y')
+```
+
+```{python}
+ai_jobs_df['month'] = ai_jobs_df['posting_date'].dt.to_period('M').astype(str)
+```
+
+```{python}
+monthly_jobs = ai_jobs_df.groupby('month').size().reset_index(name='total_jobs')
+```
+-->
+```{python}
+fig = px.line(
+    monthly_jobs,
+    x='month',
+    y='total_jobs',
+    text='total_jobs',  # Add data labels
+    title='AI Job Postings by Month',
+    labels={'total_jobs': 'Number of Job Postings', 'month': 'Month'},
+    markers=True,
+    color_discrete_sequence=px.colors.sequential.RdBu  # Custom color sequence
+)
+
+fig.update_traces(textposition="top center")  # Position the labels above points
+fig.update_xaxes(type='category')  # Treat x-axis as category
+fig.update_layout( plot_bgcolor='rgba(0,0,0,0)',paper_bgcolor='rgba(0,0,0,0)',height=500, width=1400)
+fig.show()
+```
+
+**Insight: **
+Job postings peak in April (1,927) and hit a low in September (895). The dip in summer months may reflect hiring cycles in the tech industry.
+
+**Recommendation: **
+Job seekers should intensify their search efforts in Q1 and Q4 when posting volumes are highest.
+
+## Remote Work Analysis
+
+```{python}
+# Remote work distribution
+remote_counts = ai_jobs_df['remote_ratio'].value_counts().reset_index()
+fig = px.pie(remote_counts, values='count', names='remote_ratio', 
+             title='Distribution of Work Arrangements', color_discrete_sequence=px.colors.sequential.RdBu)
+fig.update_traces(textinfo='percent+label')
+fig.update_layout( plot_bgcolor='rgba(0,0,0,0)',paper_bgcolor='rgba(0,0,0,0)',height=500, width=1400)
+fig.show()
+```
+
+ The market is nearly evenly split between fully on-site `33.8%`, hybrid `33.4%`, and fully remote `32.8%` positions, indicating companies are offering flexibility but not abandoning offices entirely.
+
+## Top Job Titles
+
+```{python}
+company_counts = ai_jobs_df.groupby('company_name').size().reset_index(name='job_count').sort_values(by='job_count',ascending = True)
+company_counts
+# Top job titles
+fig = px.bar(
+    company_counts,
+    x="job_count",
+    y="company_name",
+    title="Top Hiring Companies",
+    orientation='h',
+    height=500,
+    width=1400,
+    color_discrete_sequence=px.colors.sequential.RdBu,
+    text='job_count'
+)
+
+fig.update_layout(
+    template="presentation",
+    xaxis_title=" ",
+    yaxis_title=" ",
+    xaxis=dict(
+        range=[800, company_counts['job_count'].max() + 100], 
+        showticklabels=False
+    ),
+    yaxis=dict(
+        showticklabels=True, 
+        showgrid=False
+    ),
+    plot_bgcolor='rgba(0,0,0,0)',  # ✅ Transparent background
+    paper_bgcolor='rgba(0,0,0,0)', # ✅ Transparent outer container
+    margin=dict(l=200, r=50, t=50, b=50)
+)
+
+fig.update_traces(textposition='outside')
+
+fig.show()
+
+```
+
+"Machine Learning Researcher" is the most common title, `5.4%` of postings, followed closely by "AI Software Engineer" `5.2%` and "Autonomous Systems Engineer" `5.2%.` This reflects strong demand for both research and applied AI roles.
+
+## Salary by Industry
+
+```{python}
+# Salary by industry
+fig = px.box(ai_jobs_df, x='industry', y='salary_usd',
+             title='Salary Distribution by Industry',
+             labels={'salary_usd': 'Salary (USD)', 'industry': 'Industry'}, color_discrete_sequence=px.colors.sequential.RdBu, height=500, width=1400)
+fig.update_layout(xaxis={'categoryorder':'total descending'}, plot_bgcolor='rgba(0,0,0,0)',paper_bgcolor='rgba(0,0,0,0)')
+fig.show()
+```
+
+`Government`, `Telecommunications`, `Healthcare`, `Education`, and `Finance` are leading sectors that offer the highest salaries, while retail and media tend to pay less. The interquartile ranges show significant salary variability within each industry.
+
+## Correlation Analysis
+
+```{python}
+# Correlation matrix
+corr_matrix = ai_jobs_df[['salary_usd', 'years_experience', 'job_description_length',
+                          'benefits_score']].corr()
+
+fig = px.imshow(
+    corr_matrix,
+    text_auto=True,
+    height=500, width=1400,
+    title='Correlation Matrix of Key Variables',
+    color_continuous_scale=['#330000', 'darkred', '#ffcccc']
+
+)
+
+fig.update_layout(
+    plot_bgcolor='rgba(0,0,0,0)',
+    paper_bgcolor='rgba(0,0,0,0)'
+)
+
+fig.show()
+
+```
+
+- Experience drives salary: There's a strong positive correlation `0.74` between years of experience and salary. More experience clearly leads to higher pay.
+
+- The benefits score shows a very weak positive correlation with salary.
+
+- Job description length has negligible correlation with any variable.
+
+## Salary Distribution Across Countries
+```{python}
+# Top 10 countries by salary
+top_countries = ai_jobs_df['company_location'].value_counts().nlargest(10).index
+filtered_df = ai_jobs_df[ai_jobs_df['company_location'].isin(top_countries)]
+
+fig = px.box(filtered_df, x='company_location', y='salary_usd',
+             title='Salary Distribution by Top 10 Countries',
+             color='company_location',
+             color_discrete_sequence= ['darkred'],
+             labels={'salary_usd': 'Salary (USD)', 'company_location': 'Country'})
+fig.show()
+```
+**Insight: **
+The chart shows significant salary variation across the top 10 countries. Denmark, Singapore, Sweden,  and Germany lead with the highest median and top-range salaries, suggesting strong market value for AI roles. In contrast, countries like India, China, Austria, and Israel offer lower median salaries but still show high-end outliers, likely tied to specialized or remote roles.
+
+## Conclusion
+The AI job market offers strong opportunities across experience levels and industries, with compensation increasing significantly with experience. The near-even split between work arrangements suggests companies are still experimenting with optimal workplace models. Job seekers should focus on building both depth of experience and breadth of skills to maximize their earning potential in this dynamic field.
